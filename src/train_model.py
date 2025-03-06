@@ -24,7 +24,6 @@ random.seed(setting.rand_seed)
 train_indexs = np.array(random.sample(range(num_test + num_train), num_train))
 mask = np.ones(num_train + num_test, dtype=bool)
 mask[train_indexs] = False
-
 inputs = [
     "IMG_{}.jpg".format(i) for i in range(1, len(os.listdir(setting.input_path)) + 1)
 ]
@@ -69,6 +68,9 @@ scheduler_D = optim.lr_scheduler.StepLR(optimizer_D, step_size=10, gamma=0.1)
 scheduler_G = optim.lr_scheduler.StepLR(optimizer_G, step_size=10, gamma=0.1)
 
 best_generator_epoch_val_loss, best_discriminator_epoch_val_loss = np.inf, np.inf
+
+os.makedirs("model", exist_ok=True)
+os.makedirs("model", exist_ok=True)
 
 print("Start training")
 # Loop through N epochs
