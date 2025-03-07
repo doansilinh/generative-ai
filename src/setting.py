@@ -1,7 +1,7 @@
 import torch
 
 batch_size = 100
-num_epochs = 5
+num_epochs = 10
 learning_rate_D = 1e-5
 learning_rate_G = 1e-4
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -17,4 +17,4 @@ img_size = (512, 512)
 width, height = 512, 512
 octaves = 10
 persistence = 0.5
-lacunarity = 1.5
+lacunarity = 2

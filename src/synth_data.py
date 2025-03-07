@@ -1,7 +1,6 @@
 import os
 import random
 
-import matplotlib.pyplot as plt
 import numpy as np
 from noise import pnoise2
 from PIL import Image
@@ -72,13 +71,3 @@ for i in range(len(os.listdir(setting.raw_path))):
     image = Image.fromarray(overlay_clouds(img, clouds, alpha))
     image.save(os.path.join(setting.input_path, f"IMG_{i + 1}.jpg"))
     print(f"Đã xử lý {i + 1}/{len(os.listdir(setting.raw_path))}")
-
-idx = np.random.randint(len(os.listdir(setting.raw_path))) + 1
-fig, ax = plt.subplots(1, 2)
-ax[0].imshow(np.asarray(Image.open(os.path.join(setting.raw_path, f"IMG_{idx}.jpg"))))
-ax[1].imshow(np.asarray(Image.open(os.path.join(setting.input_path, f"IMG_{idx}.jpg"))))
-ax[0].set_title("Raw")
-ax[0].axis("off")
-ax[1].set_title("Input")
-ax[1].axis("off")
-plt.show()
