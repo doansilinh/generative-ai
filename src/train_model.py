@@ -73,6 +73,7 @@ os.makedirs("model", exist_ok=True)
 os.makedirs("model", exist_ok=True)
 
 print("Start training")
+torch.cuda.empty_cache()
 # Loop through N epochs
 for epoch in range(setting.num_epochs):
     print("#" * 20, "Epoch = ", epoch + 1)
@@ -111,6 +112,7 @@ for epoch in range(setting.num_epochs):
         # backpropagation to caculate derivative
         loss_D.backward()
         optimizer_D.step()
+        torch.cuda.empty_cache()
 
         # Sum D_Model loss for this epoch
         discriminator_epoch_loss += loss_D.item()
@@ -134,6 +136,7 @@ for epoch in range(setting.num_epochs):
         # Backpropagation to caculate derivative
         loss_G.backward()
         optimizer_G.step()
+        torch.cuda.empty_cache()
 
         # Sum GLoss
         generator_epoch_loss += loss_G.item()
@@ -150,6 +153,7 @@ for epoch in range(setting.num_epochs):
     discriminator_epoch_val_loss, generator_epoch_val_loss = 0, 0
 
     with torch.no_grad():
+        torch.cuda.empty_cache()
         for inputs, raws in test_loader:
             inputs, raws = inputs.to(setting.device), raws.to(setting.device)
 
@@ -178,6 +182,7 @@ for epoch in range(setting.num_epochs):
     print(
         f"Train Loss G: {generator_epoch_loss:.4f}, Val Loss G: {generator_epoch_val_loss:.4f}"
     )
+    torch.cuda.empty_cache()
 
     # Save best weight
     if discriminator_epoch_val_loss < best_discriminator_epoch_val_loss:
