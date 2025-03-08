@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from torch.utils.checkpoint import checkpoint
 
 
 class ResidualBlock(nn.Module):
@@ -32,37 +33,41 @@ class ResidualBlock(nn.Module):
 
 
 class DModel(nn.Module):
-    def __init__(self, block=ResidualBlock, all_connections=[3, 4, 6, 3, 3, 3]):
+    def __init__(self, block=ResidualBlock, all_connections=[2, 3, 4, 2, 2]):
         super().__init__()
-        self.inputs = 32
+        self.inputs = 16  # Reduced from 32
         self.conv1 = nn.Sequential(
-            nn.Conv2d(3, 32, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(32),
+            nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1),  # Reduced from 32
+            nn.BatchNorm2d(16),  # Reduced from 32
             nn.ReLU(),
         )  # 512x512
         self.maxpool = nn.MaxPool2d(kernel_size=2, stride=2)  # 256x256
 
         self.layer0 = self.makeLayer(
-            block, 64, all_connections[0], stride=1
-        )  # connections = 3, shape: 256x256
+            block, 32, all_connections[0], stride=1
+        )  # Reduced from 64, connections = 2, shape: 256x256
         self.layer1 = self.makeLayer(
-            block, 128, all_connections[1], stride=2
-        )  # connections = 4, shape: 128x128
+            block, 64, all_connections[1], stride=2
+        )  # Reduced from 128, connections = 3, shape: 128x128
         self.layer2 = self.makeLayer(
-            block, 256, all_connections[2], stride=2
-        )  # connections = 6, shape: 64x64
+            block, 128, all_connections[2], stride=2
+        )  # Reduced from 256, connections = 4, shape: 64x64
         self.layer3 = self.makeLayer(
-            block, 512, all_connections[3], stride=2
-        )  # connections = 3, shape: 32x32
+            block, 256, all_connections[3], stride=2
+        )  # Reduced from 512, connections = 2, shape: 32x32
         self.layer4 = self.makeLayer(
-            block, 1024, all_connections[4], stride=2
-        )  # connections = 3, shape: 16x16
-        self.layer5 = self.makeLayer(
-            block, 2048, all_connections[5], stride=2
-        )  # connections = 3, shape: 8x8
+            block, 512, all_connections[4], stride=2
+        )  # Reduced from 1024, connections = 2, shape: 16x16
 
-        self.avgpool = nn.AvgPool2d(8, stride=1)  # Pool để về (1, 1, 2048)
-        self.fc = nn.Linear(2048, 1)
+        # Removed layer5 completely (was 2048 features)
+
+        self.avgpool = nn.AvgPool2d(
+            16, stride=1
+        )  # Changed from 8 to 16 since we have one less layer
+        self.fc = nn.Linear(512, 1)  # Changed from 2048 to 512
+
+        # Enable memory efficient forward pass
+        self.use_checkpointing = True
 
     def makeLayer(self, block, outputs, connections, stride=1):
         downsample = None
@@ -82,13 +87,22 @@ class DModel(nn.Module):
     def forward(self, x):
         x = self.conv1(x)
         x = self.maxpool(x)
-        x = self.layer0(x)
-        x = self.layer1(x)
-        x = self.layer2(x)
-        x = self.layer3(x)
-        x = self.layer4(x)
-        x = self.layer5(x)
+
+        # Use gradient checkpointing to save memory during backward pass
+        if self.use_checkpointing and self.training:
+            x = checkpoint(self.layer0, x, use_reentrant=False)
+            x = checkpoint(self.layer1, x, use_reentrant=False)
+            x = checkpoint(self.layer2, x, use_reentrant=False)
+            x = checkpoint(self.layer3, x, use_reentrant=False)
+            x = checkpoint(self.layer4, x, use_reentrant=False)
+        else:
+            x = self.layer0(x)
+            x = self.layer1(x)
+            x = self.layer2(x)
+            x = self.layer3(x)
+            x = self.layer4(x)
+
         x = self.avgpool(x)
-        x = x.view(-1, 2048)
+        x = x.view(-1, 512)  # Changed from 2048 to 512
         x = self.fc(x).flatten()
         return torch.sigmoid(x)

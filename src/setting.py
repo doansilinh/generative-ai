@@ -1,6 +1,6 @@
 import torch
 
-batch_size = 5
+batch_size = 20
 num_epochs = 10
 learning_rate_D = 1e-5
 learning_rate_G = 1e-4

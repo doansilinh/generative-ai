@@ -57,6 +57,11 @@ test_loader = data_loader.dataset(
 # Init model, optimizer and scheduler
 discriminator = d_model.DModel().to(setting.device)
 generator = g_model.GModel().to(setting.device)
+try:
+    discriminator.load_state_dict(torch.load("model/discriminator.pth"))
+    generator.load_state_dict(torch.load("model/generator.pth"))
+except Exception:
+    print("No pretrain model found")
 
 bce = nn.BCEWithLogitsLoss()
 l1loss = nn.L1Loss()
