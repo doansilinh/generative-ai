@@ -1,6 +1,82 @@
 import torch
 import torch.nn as nn
-from torch.utils.checkpoint import checkpoint
+
+
+class ResidualBlock(nn.Module):
+    def __init__(self, in_channels, out_channels, stride=1, downsample=None):
+        super(ResidualBlock, self).__init__()
+        self.conv1 = nn.Sequential(
+            nn.Conv2d(
+                in_channels, out_channels, kernel_size=3, stride=stride, padding=1
+            ),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(),
+        )
+        self.conv2 = nn.Sequential(
+            nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(out_channels),
+        )
+        self.downsample = downsample
+        self.relu = nn.ReLU()
+        self.out_channels = out_channels
+
+    def forward(self, x):
+        residual = x
+        out = self.conv1(x)
+        out = self.conv2(out)
+        if self.downsample:
+            residual = self.downsample(x)
+        out += residual
+        out = self.relu(out)
+        return out
+
+
+class DModel(nn.Module):
+    def __init__(
+        self, block=ResidualBlock, all_connections=[2, 3, 3, 2]
+    ):  # Reduced layers
+        super().__init__()
+        self.inputs = 16  # Reduced from 32
+        self.conv1 = nn.Sequential(
+            nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(16),
+            nn.ReLU(),
+        )
+        self.maxpool = nn.MaxPool2d(kernel_size=2, stride=2)
+
+        self.layer0 = self.makeLayer(block, 32, all_connections[0], stride=1)
+        self.layer1 = self.makeLayer(block, 64, all_connections[1], stride=2)
+        self.layer2 = self.makeLayer(block, 128, all_connections[2], stride=2)
+        self.layer3 = self.makeLayer(block, 256, all_connections[3], stride=2)
+
+        self.avgpool = nn.AvgPool2d(16, stride=1)
+        self.fc = nn.Linear(256, 1)
+
+    def makeLayer(self, block, outputs, connections, stride=1):
+        downsample = None
+        if stride != 1 or self.inputs != outputs:
+            downsample = nn.Sequential(
+                nn.Conv2d(self.inputs, outputs, kernel_size=1, stride=stride),
+                nn.BatchNorm2d(outputs),
+            )
+        layers = [block(self.inputs, outputs, stride, downsample)]
+        self.inputs = outputs
+        for _ in range(1, connections):
+            layers.append(block(self.inputs, outputs))
+
+        return nn.Sequential(*layers)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.maxpool(x)
+        x = self.layer0(x)
+        x = self.layer1(x)
+        x = self.layer2(x)
+        x = self.layer3(x)
+        x = self.avgpool(x)
+        x = x.view(-1, 256)
+        x = self.fc(x).flatten()
+        return torch.sigmoid(x)
 
 
 class DoubleConv(nn.Module):
@@ -22,54 +98,38 @@ class DoubleConv(nn.Module):
 class GModel(nn.Module):
     def __init__(self):
         super().__init__()
-        self.conv_1 = DoubleConv(3, 16)  # Reduced from 32, 512x512
-        self.pool_1 = nn.MaxPool2d(kernel_size=2, stride=2)  # 256x256
+        self.conv_1 = DoubleConv(3, 16)
+        self.pool_1 = nn.MaxPool2d(kernel_size=2, stride=2)
 
-        self.conv_2 = DoubleConv(16, 32)  # Reduced from 64, 256x256
-        self.pool_2 = nn.MaxPool2d(kernel_size=2, stride=2)  # 128x128
+        self.conv_2 = DoubleConv(16, 32)
+        self.pool_2 = nn.MaxPool2d(kernel_size=2, stride=2)
 
-        self.conv_3 = DoubleConv(32, 64)  # Reduced from 128, 128x128
-        self.pool_3 = nn.MaxPool2d(kernel_size=2, stride=2)  # 64x64
+        self.conv_3 = DoubleConv(32, 64)
+        self.pool_3 = nn.MaxPool2d(kernel_size=2, stride=2)
 
-        self.conv_4 = DoubleConv(64, 128)  # Reduced from 256, 64x64
-        self.pool_4 = nn.MaxPool2d(kernel_size=2, stride=2)  # 32x32
+        self.conv_4 = DoubleConv(64, 128)
+        self.pool_4 = nn.MaxPool2d(kernel_size=2, stride=2)
 
-        self.conv_5 = DoubleConv(128, 256)  # Reduced from 512, 32x32
-        self.pool_5 = nn.MaxPool2d(kernel_size=2, stride=2)  # 16x16
+        self.conv_5 = DoubleConv(128, 256)
+        self.pool_5 = nn.MaxPool2d(kernel_size=2, stride=2)
 
-        self.conv_6 = DoubleConv(256, 512)  # Reduced from 1024, 16x16
-        self.pool_6 = nn.MaxPool2d(kernel_size=2, stride=2)  # 8x8
+        # Removed last two encoder layers
 
-        self.conv_7 = DoubleConv(512, 1024)  # Reduced from 2048, 8x8
+        self.upconv_1 = nn.ConvTranspose2d(256, 128, kernel_size=2, stride=2)
+        self.conv_6 = DoubleConv(256, 128)
 
-        # DECODER
-        self.upconv_1 = nn.ConvTranspose2d(1024, 512, kernel_size=2, stride=2)  # 16x16
-        self.conv_8 = DoubleConv(
-            1024, 512
-        )  # Concatenated features: 512+512=1024, 16x16
+        self.upconv_2 = nn.ConvTranspose2d(128, 64, kernel_size=2, stride=2)
+        self.conv_7 = DoubleConv(128, 64)
 
-        self.upconv_2 = nn.ConvTranspose2d(512, 256, kernel_size=2, stride=2)  # 32x32
-        self.conv_9 = DoubleConv(512, 256)  # Concatenated features: 256+256=512, 32x32
+        self.upconv_3 = nn.ConvTranspose2d(64, 32, kernel_size=2, stride=2)
+        self.conv_8 = DoubleConv(64, 32)
 
-        self.upconv_3 = nn.ConvTranspose2d(256, 128, kernel_size=2, stride=2)  # 64x64
-        self.conv_10 = DoubleConv(256, 128)  # Concatenated features: 128+128=256, 64x64
+        self.upconv_4 = nn.ConvTranspose2d(32, 16, kernel_size=2, stride=2)
+        self.conv_9 = DoubleConv(32, 16)
 
-        self.upconv_4 = nn.ConvTranspose2d(128, 64, kernel_size=2, stride=2)  # 128x128
-        self.conv_11 = DoubleConv(128, 64)  # Concatenated features: 64+64=128, 128x128
-
-        self.upconv_5 = nn.ConvTranspose2d(64, 32, kernel_size=2, stride=2)  # 256x256
-        self.conv_12 = DoubleConv(64, 32)  # Concatenated features: 32+32=64, 256x256
-
-        self.upconv_6 = nn.ConvTranspose2d(32, 16, kernel_size=2, stride=2)  # 512x512
-        self.conv_13 = DoubleConv(32, 16)  # Concatenated features: 16+16=32, 512x512
-
-        self.output = nn.Conv2d(16, 3, kernel_size=3, stride=1, padding=1)  # 3x512x512
-
-        # Enable memory efficient forward pass
-        self.use_checkpointing = True
+        self.output = nn.Conv2d(16, 3, kernel_size=3, stride=1, padding=1)
 
     def forward(self, batch):
-        # Encoder path
         conv_1_out = self.conv_1(batch)
         pool_1_out = self.pool_1(conv_1_out)
 
@@ -83,60 +143,17 @@ class GModel(nn.Module):
         pool_4_out = self.pool_4(conv_4_out)
 
         conv_5_out = self.conv_5(pool_4_out)
-        pool_5_out = self.pool_5(conv_5_out)
 
-        conv_6_out = self.conv_6(pool_5_out)
-        pool_6_out = self.pool_6(conv_6_out)
+        upconv_1_out = self.upconv_1(conv_5_out)
+        conv_6_out = self.conv_6(torch.cat([upconv_1_out, conv_4_out], dim=1))
 
-        # Bottleneck
-        conv_7_out = self.conv_7(pool_6_out)
+        upconv_2_out = self.upconv_2(conv_6_out)
+        conv_7_out = self.conv_7(torch.cat([upconv_2_out, conv_3_out], dim=1))
 
-        # Decoder path with gradient checkpointing for memory efficiency
-        if self.use_checkpointing and self.training:
-            # Using gradient checkpointing for decoder path
-            upconv_1_out = self.upconv_1(conv_7_out)
-            concat_1 = torch.cat([upconv_1_out, conv_6_out], dim=1)
-            conv_8_out = checkpoint(self.conv_8, concat_1, use_reentrant=False)
+        upconv_3_out = self.upconv_3(conv_7_out)
+        conv_8_out = self.conv_8(torch.cat([upconv_3_out, conv_2_out], dim=1))
 
-            upconv_2_out = self.upconv_2(conv_8_out)
-            concat_2 = torch.cat([upconv_2_out, conv_5_out], dim=1)
-            conv_9_out = checkpoint(self.conv_9, concat_2, use_reentrant=False)
+        upconv_4_out = self.upconv_4(conv_8_out)
+        conv_9_out = self.conv_9(torch.cat([upconv_4_out, conv_1_out], dim=1))
 
-            upconv_3_out = self.upconv_3(conv_9_out)
-            concat_3 = torch.cat([upconv_3_out, conv_4_out], dim=1)
-            conv_10_out = checkpoint(self.conv_10, concat_3, use_reentrant=False)
-
-            upconv_4_out = self.upconv_4(conv_10_out)
-            concat_4 = torch.cat([upconv_4_out, conv_3_out], dim=1)
-            conv_11_out = checkpoint(self.conv_11, concat_4, use_reentrant=False)
-
-            upconv_5_out = self.upconv_5(conv_11_out)
-            concat_5 = torch.cat([upconv_5_out, conv_2_out], dim=1)
-            conv_12_out = checkpoint(self.conv_12, concat_5, use_reentrant=False)
-
-            upconv_6_out = self.upconv_6(conv_12_out)
-            concat_6 = torch.cat([upconv_6_out, conv_1_out], dim=1)
-            conv_13_out = checkpoint(self.conv_13, concat_6, use_reentrant=False)
-        else:
-            # Standard forward pass without checkpointing
-            conv_8_out = self.conv_8(
-                torch.cat([self.upconv_1(conv_7_out), conv_6_out], dim=1)
-            )
-            conv_9_out = self.conv_9(
-                torch.cat([self.upconv_2(conv_8_out), conv_5_out], dim=1)
-            )
-            conv_10_out = self.conv_10(
-                torch.cat([self.upconv_3(conv_9_out), conv_4_out], dim=1)
-            )
-            conv_11_out = self.conv_11(
-                torch.cat([self.upconv_4(conv_10_out), conv_3_out], dim=1)
-            )
-            conv_12_out = self.conv_12(
-                torch.cat([self.upconv_5(conv_11_out), conv_2_out], dim=1)
-            )
-            conv_13_out = self.conv_13(
-                torch.cat([self.upconv_6(conv_12_out), conv_1_out], dim=1)
-            )
-
-        output = self.output(conv_13_out)
-        return torch.sigmoid(output)
+        return torch.sigmoid(self.output(conv_9_out))
