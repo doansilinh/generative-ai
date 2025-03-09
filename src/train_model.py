@@ -8,6 +8,7 @@ from discriminator_model import build_discriminator
 from gan_model import DCGAN
 from generator_model import build_generator
 from load_data import read_images
+from setting import batch_size, d_learning_rate, epochs, g_learning_rate
 
 latent_dim = 128
 
@@ -17,11 +18,11 @@ with tf.device("/GPU:0"):
 
     gan = DCGAN(discriminator=discriminator, generator=generator, latent_dim=latent_dim)
     gan.compile(
-        d_optimizer=Adam(learning_rate=0.0002, beta_1=0.5),
-        g_optimizer=Adam(learning_rate=0.0002, beta_1=0.5),
+        d_optimizer=Adam(learning_rate=d_learning_rate, beta_1=0.5),
+        g_optimizer=Adam(learning_rate=g_learning_rate, beta_1=0.5),
     )
     X_train = read_images("./data")
-    history = gan.fit(X_train, epochs=10, batch_size=100)
+    history = gan.fit(X_train, epochs=epochs, batch_size=batch_size)
 
 os.makedirs("./model", exist_ok=True)
 generator.save("./model/generator.keras")
