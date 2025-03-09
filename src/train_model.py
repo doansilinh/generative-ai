@@ -21,7 +21,7 @@ with tf.device("/GPU:0"):
         g_optimizer=Adam(learning_rate=0.0002, beta_1=0.5),
     )
     X_train = read_images("./data")
-    history = gan.fit(X_train, epochs=1, batch_size=100)
+    history = gan.fit(X_train, epochs=10, batch_size=100)
 
 os.makedirs("./model", exist_ok=True)
 generator.save("./model/generator.keras")
