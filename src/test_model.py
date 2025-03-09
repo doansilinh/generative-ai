@@ -10,24 +10,26 @@ import g_model
 import setting
 
 # Count total data
-num_test = int(len(os.listdir(setting.path_target)) * setting.test_ratio)
-num_train = int((int(len(os.listdir(setting.path_target))) - num_test))
+num_test = int(len(os.listdir(setting.raw_path)) * setting.test_ratio)
+num_train = int((int(len(os.listdir(setting.raw_path))) - num_test))
 
 print("Number of train samples:", num_train)
 print("Number of test samples:", num_test)
 
 # Train , test split
 random.seed(setting.rand_seed)
-train_idxs = np.array(random.sample(range(num_test + num_train), num_train))
+train_indexs = np.array(random.sample(range(num_test + num_train), num_train))
 mask = np.ones(num_train + num_test, dtype=bool)
-mask[train_idxs] = False
-
-inputs = ["IMG_{}.jpg".format(i) for i in range(1, 27001)]
-raws = ["IMG_{}.jpg".format(i) for i in range(1, 27001)]
-train_input_img_paths = np.array(inputs)[train_idxs]
-train_raw_img_path = np.array(raws)[train_idxs]
+mask[train_indexs] = False
+inputs = [
+    "IMG_{}.jpg".format(i) for i in range(1, len(os.listdir(setting.input_path)) + 1)
+]
+raws = ["IMG_{}.jpg".format(i) for i in range(1, len(os.listdir(setting.raw_path)) + 1)]
+train_input_img_paths = np.array(inputs)[train_indexs]
+train_raw_img_path = np.array(raws)[train_indexs]
 test_input_img_paths = np.array(inputs)[mask]
 test_raw_img_path = np.array(raws)[mask]
+
 # Test after train
 random.Random(setting.rand_seed).shuffle(test_raw_img_path)
 random.Random(setting.rand_seed).shuffle(test_input_img_paths)
@@ -39,7 +41,7 @@ subset_loader = data_loader.dataset(
 )
 
 generator = g_model.GModel()
-generator.load_state_dict(torch.load("models/generator.pth"))
+generator.load_state_dict(torch.load("model/generator.pth"))
 generator.eval()
 for X, y in subset_loader:
     fig, axes = plt.subplots(5, 3, figsize=(9, 9))

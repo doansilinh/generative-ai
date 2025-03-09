@@ -58,8 +58,10 @@ test_loader = data_loader.dataset(
 discriminator = d_model.DModel().to(setting.device)
 generator = g_model.GModel().to(setting.device)
 try:
-    discriminator.load_state_dict(torch.load("model/discriminator.pth"))
-    generator.load_state_dict(torch.load("model/generator.pth"))
+    discriminator.load_state_dict(torch.load("model/discriminator.pth")).to(
+        setting.device
+    )
+    generator.load_state_dict(torch.load("model/generator.pth")).to(setting.device)
 except Exception:
     print("No pretrain model found")
 

@@ -1,10 +1,5 @@
 numpy
-noise
-pillow
 matplotlib
-tqdm
 kagglehub
 
-torch
-torchvision
-torchaudio
+tensorflow[and-cuda]
