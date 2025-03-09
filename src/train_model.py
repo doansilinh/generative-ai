@@ -11,20 +11,19 @@ from load_data import read_images
 
 latent_dim = 128
 
-generator = build_generator(latent_dim)
-discriminator = build_discriminator()
-
-gan = DCGAN(discriminator=discriminator, generator=generator, latent_dim=latent_dim)
-gan.compile(
-    d_optimizer=Adam(learning_rate=0.0002, beta_1=0.5),
-    g_optimizer=Adam(learning_rate=0.0002, beta_1=0.5),
-)
-X_train = read_images("./data")
-
 with tf.device("/GPU:0"):
-    history = gan.fit(X_train, epochs=100)
+    generator = build_generator(latent_dim)
+    discriminator = build_discriminator()
 
-os.makedirs(".model", exist_ok=True)
+    gan = DCGAN(discriminator=discriminator, generator=generator, latent_dim=latent_dim)
+    gan.compile(
+        d_optimizer=Adam(learning_rate=0.0002, beta_1=0.5),
+        g_optimizer=Adam(learning_rate=0.0002, beta_1=0.5),
+    )
+    X_train = read_images("./data")
+    history = gan.fit(X_train, epochs=2)
+
+os.makedirs("./model", exist_ok=True)
 generator.save("./model/generator.keras")
 discriminator.save("./model/discriminator.keras")
 
