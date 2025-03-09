@@ -21,26 +21,19 @@ with tf.device("/GPU:0"):
         g_optimizer=Adam(learning_rate=0.0002, beta_1=0.5),
     )
     X_train = read_images("./data")
-    history = gan.fit(X_train, epochs=2)
+    history = gan.fit(X_train, epochs=1, batch_size=100)
 
 os.makedirs("./model", exist_ok=True)
 generator.save("./model/generator.keras")
 discriminator.save("./model/discriminator.keras")
 
+os.makedirs("./images", exist_ok=True)
 plt.plot(history.history["d_loss"])
 plt.plot(history.history["g_loss"])
+plt.plot(history.history["fake_acc"])
+plt.plot(history.history["real_acc"])
 plt.title("Model loss")
 plt.ylabel("Loss")
 plt.xlabel("Epoch")
-plt.legend(["d_loss", "g_loss"], loc="upper right")
+plt.legend(["d_loss", "g_loss", "fake_acc", "real_acc"], loc="upper right")
 plt.savefig("./images/result.png")
-
-noise = tf.random.normal([16, 128])
-generated_images = gan.generator(noise)
-
-fig = plt.figure(figsize=(8, 8))
-for i in range(generated_images.shape[0]):
-    plt.subplot(4, 4, i + 1)
-    plt.imshow((generated_images[i, :, :, :] * 0.5 + 0.5))
-    plt.axis("off")
-plt.show()

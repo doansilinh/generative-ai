@@ -1,5 +1,0 @@
-numpy
-matplotlib
-kagglehub
-
-tensorflow[and-cuda]
