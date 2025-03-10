@@ -3,61 +3,42 @@ from tensorflow import keras
 from tensorflow.keras.models import Model
 
 
-# Using binary cross entropy with label smoothing
-def wasserstein_loss(y_true, y_pred):
-    return tf.reduce_mean(y_true * y_pred)
-
-
 class DCGAN(Model):
     def __init__(self, discriminator, generator, latent_dim):
         super(DCGAN, self).__init__()
         self.discriminator = discriminator
         self.generator = generator
         self.latent_dim = latent_dim
-        self.d_steps = 1  # Number of discriminator training steps per generator step
-        self.use_wgan = False  # Set to True to use Wasserstein GAN loss
+        self.d_steps = 1
 
-    def compile(self, d_optimizer, g_optimizer, use_wgan=False):
+    def compile(self, d_optimizer, g_optimizer):
         super(DCGAN, self).compile()
         self.d_optimizer = d_optimizer
         self.g_optimizer = g_optimizer
         self.d_loss_metric = keras.metrics.Mean(name="d_loss")
         self.g_loss_metric = keras.metrics.Mean(name="g_loss")
-        self.use_wgan = use_wgan
-
-        # Additional metrics for monitoring
         self.real_accuracy = keras.metrics.BinaryAccuracy(name="real_acc")
         self.fake_accuracy = keras.metrics.BinaryAccuracy(name="fake_acc")
 
     def generator_loss(self, fake_output):
-        if self.use_wgan:
-            # For WGAN, we want to maximize the critic's output for fake images
-            return -tf.reduce_mean(fake_output)
-        else:
-            # Use label smoothing (0.9 instead of 1.0)
-            return tf.keras.losses.BinaryCrossentropy()(
-                tf.ones_like(fake_output) * 0.9, fake_output
-            )
+        return tf.keras.losses.BinaryCrossentropy()(
+            tf.ones_like(fake_output) * 0.9, fake_output
+        )
 
     def discriminator_loss(self, real_output, fake_output):
-        if self.use_wgan:
-            # For WGAN, we want to maximize the difference between real and fake outputs
-            return tf.reduce_mean(fake_output) - tf.reduce_mean(real_output)
-        else:
-            # Use label smoothing (0.9 instead of 1.0 for real samples)
-            real_loss = tf.keras.losses.BinaryCrossentropy()(
-                tf.ones_like(real_output) * 0.9, real_output
-            )
-            fake_loss = tf.keras.losses.BinaryCrossentropy()(
-                tf.zeros_like(fake_output), fake_output
-            )
-            total_loss = real_loss + fake_loss
+        real_loss = tf.keras.losses.BinaryCrossentropy()(
+            tf.ones_like(real_output) * 0.9, real_output
+        )
+        fake_loss = tf.keras.losses.BinaryCrossentropy()(
+            tf.zeros_like(fake_output), fake_output
+        )
+        total_loss = real_loss + fake_loss
 
-            # Update accuracy metrics
-            self.real_accuracy.update_state(tf.ones_like(real_output), real_output)
-            self.fake_accuracy.update_state(tf.zeros_like(fake_output), fake_output)
+        # Update accuracy metrics
+        self.real_accuracy.update_state(tf.ones_like(real_output), real_output)
+        self.fake_accuracy.update_state(tf.zeros_like(fake_output), fake_output)
 
-            return total_loss
+        return total_loss
 
     @tf.function
     def train_step(self, real_images):
@@ -85,10 +66,8 @@ class DCGAN(Model):
             )
             d_loss_value += d_loss
 
-        # Average discriminator loss
         d_loss_value /= self.d_steps
 
-        # Train the generator
         random_latent_vectors = tf.random.normal(shape=(batch_size, self.latent_dim))
 
         with tf.GradientTape() as generator_tape:
@@ -103,7 +82,6 @@ class DCGAN(Model):
             zip(generator_grads, self.generator.trainable_weights)
         )
 
-        # Update metrics
         self.d_loss_metric.update_state(d_loss_value)
         self.g_loss_metric.update_state(g_loss)
 

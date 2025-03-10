@@ -12,15 +12,15 @@ from tensorflow.keras.layers import (
 from tensorflow.keras.models import Sequential
 
 
+# Xây dựng mô hình discriminator
 def build_discriminator(image_shape=(64, 64, 3)):
-    # Builds the discriminator model with improved architecture
-
     init = tf.keras.initializers.RandomNormal(stddev=0.02)
     model = Sequential(name="discriminator")
 
+    # Đầu vào của mô hình là một ảnh
     model.add(Input(shape=image_shape))
 
-    # First block
+    # Khối đầu tiên
     model.add(
         Conv2D(
             64,
@@ -29,38 +29,39 @@ def build_discriminator(image_shape=(64, 64, 3)):
             padding="same",
             kernel_initializer=init,
         )
-    )
-    model.add(LeakyReLU(alpha=0.2))
-    model.add(Dropout(0.3))
+    )  # Convolutional layer với filter = 64 ,kích thước kernel = 4, bước nhảy kernel = 2, giữ nguyên kích thước đầu ra
+    model.add(BatchNormalization(momentum=0.8))  # Chuẩn hóa dữ liệu
+    model.add(LeakyReLU(alpha=0.2))  # Hàm kích hoạt LeakyReLU
+    model.add(Dropout(0.3))  # Loại bỏ 30% dữ liệu để tránh overfitting
 
-    # Second block
+    # Khối thứ hai
     model.add(
         Conv2D(128, kernel_size=4, strides=2, padding="same", kernel_initializer=init)
-    )
-    model.add(BatchNormalization(momentum=0.8))
-    model.add(LeakyReLU(alpha=0.2))
-    model.add(Dropout(0.3))
+    )  # Convolutional layer với filter = 128 ,kích thước kernel = 4, bước nhảy kernel = 2, giữ nguyên kích thước đầu ra
+    model.add(BatchNormalization(momentum=0.8))  # Chuẩn hóa dữ liệu
+    model.add(LeakyReLU(alpha=0.2))  # Hàm kích hoạt LeakyReLU
+    model.add(Dropout(0.3))  # Loại bỏ 30% dữ liệu để tránh overfitting
 
-    # Third block
+    # Khối thứ ba
     model.add(
         Conv2D(256, kernel_size=4, strides=2, padding="same", kernel_initializer=init)
-    )
-    model.add(BatchNormalization(momentum=0.8))
-    model.add(LeakyReLU(alpha=0.2))
-    model.add(Dropout(0.3))
+    )  # Convolutional layer với filter = 265 ,kích thước kernel = 4, bước nhảy kernel = 2, giữ nguyên kích thước đầu ra
+    model.add(BatchNormalization(momentum=0.8))  # Chuẩn hóa dữ liệu
+    model.add(LeakyReLU(alpha=0.2))  # Hàm kích hoạt LeakyReLU
+    model.add(Dropout(0.3))  # Loại bỏ 30% dữ liệu để tránh overfitting
 
-    # Fourth block
+    # Khối thứ tư
     model.add(
         Conv2D(512, kernel_size=4, strides=2, padding="same", kernel_initializer=init)
-    )
-    model.add(BatchNormalization(momentum=0.8))
-    model.add(LeakyReLU(alpha=0.2))
-    model.add(Dropout(0.3))
+    )  # Convolutional layer với filter = 512 ,kích thước kernel = 4, bước nhảy kernel = 2, giữ nguyên kích thước đầu ra
+    model.add(BatchNormalization(momentum=0.8))  # Chuẩn hóa dữ liệu
+    model.add(LeakyReLU(alpha=0.2))  # Hàm kích hoạt LeakyReLU
+    model.add(Dropout(0.3))  # Loại bỏ 30% dữ liệu để tránh overfitting
 
-    # Output
-    model.add(Flatten())
-    model.add(Dense(1, kernel_initializer=init))
-    model.add(Activation("sigmoid"))
+    # Đầu ra của mô hình là một giá trị từ 0 đến 1 để nhận biết ảnh thật và ảnh giả
+    model.add(Flatten())  # Làm phẳng dữ liệu
+    model.add(Dense(1, kernel_initializer=init))  # Lớp Dense với 1 nơ-ron đầu ra
+    model.add(Activation("sigmoid"))  # Hàm kích hoạt sigmoid
 
     model.summary()
 

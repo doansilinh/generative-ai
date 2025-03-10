@@ -1,4 +1,5 @@
 import os
+import time
 
 import matplotlib.pyplot as plt
 import tensorflow as tf
@@ -12,29 +13,42 @@ from setting import batch_size, d_learning_rate, epochs, g_learning_rate
 
 latent_dim = 128
 
+# Huấn luyện mô hình với GPU
+start = time.time()
 with tf.device("/GPU:0"):
+    # Khởi tạo mô hình generator và discriminator
     generator = build_generator(latent_dim)
     discriminator = build_discriminator()
 
+    # Khởi tạo mô hình GAN
     gan = DCGAN(discriminator=discriminator, generator=generator, latent_dim=latent_dim)
     gan.compile(
         d_optimizer=Adam(learning_rate=d_learning_rate, beta_1=0.5),
         g_optimizer=Adam(learning_rate=g_learning_rate, beta_1=0.5),
     )
+
+    # Đọc dữ liệu và huấn luyện mô hình
     X_train = read_images("./data")
     history = gan.fit(X_train, epochs=epochs, batch_size=batch_size)
+end = time.time()
+execution_time = end - start
 
-os.makedirs("./model", exist_ok=True)
-generator.save("./model/generator.keras")
-discriminator.save("./model/discriminator.keras")
+print(
+    f"Tổng thời gian chạy của mô hình là {execution_time:.2f}s, trung bình mỗi epoch là {(execution_time / epochs):.2f}s"
+)
 
+# Lưu mô hình generator và discriminator
+os.makedirs("./models", exist_ok=True)
+generator.save("./models/generator.keras")
+discriminator.save("./models/discriminator.keras")
+
+# Lưu kết quả huấn luyện
 os.makedirs("./images", exist_ok=True)
 plt.plot(history.history["d_loss"])
 plt.plot(history.history["g_loss"])
 plt.plot(history.history["fake_acc"])
 plt.plot(history.history["real_acc"])
-plt.title("Model loss")
-plt.ylabel("Loss")
+plt.title("Đánh giá mô hình")
 plt.xlabel("Epoch")
 plt.legend(["d_loss", "g_loss", "fake_acc", "real_acc"], loc="upper right")
-plt.savefig("./images/result.png")
+plt.savefig("./images/result_model.png")
