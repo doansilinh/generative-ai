@@ -30,7 +30,6 @@ def build_discriminator(image_shape=(64, 64, 3)):
             kernel_initializer=init,
         )
     )  # Convolutional layer với filter = 64 ,kích thước kernel = 4, bước nhảy kernel = 2, giữ nguyên kích thước đầu ra
-    model.add(BatchNormalization(momentum=0.8))  # Chuẩn hóa dữ liệu
     model.add(LeakyReLU(alpha=0.2))  # Hàm kích hoạt LeakyReLU
     model.add(Dropout(0.3))  # Loại bỏ 30% dữ liệu để tránh overfitting
 
