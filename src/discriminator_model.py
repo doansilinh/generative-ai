@@ -6,6 +6,7 @@ from tensorflow.keras.layers import (
     Dense,
     Dropout,
     Flatten,
+    GaussianNoise,
     Input,
     LeakyReLU,
 )
@@ -19,6 +20,7 @@ def build_discriminator(image_shape=(64, 64, 3)):
 
     # Đầu vào của mô hình là một ảnh
     model.add(Input(shape=image_shape))
+    model.add(GaussianNoise(0.1))
 
     # Khối đầu tiên
     model.add(
