@@ -41,7 +41,7 @@ with tf.device("/GPU:0"):
 
     # Đọc dữ liệu và huấn luyện mô hình
     X_train = read_images("./data")
-    history = gan.fit(X_train, epochs=epochs, Callback=[DCGANCallback()])
+    history = gan.fit(X_train, epochs=epochs, callbacks=[DCGANCallback()])
 end = time.time()
 execution_time = end - start
 
