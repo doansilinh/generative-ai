@@ -32,7 +32,7 @@ def build_generator(latent_dim):
     )  # Transposed convolutional layer với filter = 512, kích thước kernel = 4, bước nhảy kernel = 2, giữ nguyên kích thước đầu ra
     model.add(BatchNormalization())  # Chuẩn hóa dữ liệu
     model.add(ReLU())  # Hàm kích hoạt ReLU
-    model.add(Dropout(0.3))  # Loại bỏ 30% dữ liệu để tránh overfitting
+    model.add(Dropout(0.25))  # Loại bỏ 25% dữ liệu để tránh overfitting
 
     # Khối thứ hai
     model.add(
@@ -42,7 +42,7 @@ def build_generator(latent_dim):
     )  # Transposed convolutional layer với filter = 256, kích thước kernel = 4, bước nhảy kernel = 2, giữ nguyên kích thước đầu ra
     model.add(BatchNormalization())  # Chuẩn hóa dữ liệu
     model.add(ReLU())  # Hàm kích hoạt ReLU
-    model.add(Dropout(0.3))  # Loại bỏ 30% dữ liệu để tránh overfitting
+    model.add(Dropout(0.25))  # Loại bỏ 25% dữ liệu để tránh overfitting
 
     # Khối thứ 3
     model.add(
@@ -52,7 +52,7 @@ def build_generator(latent_dim):
     )  # Transposed convolutional layer với filter = 128, kích thước kernel = 4, bước nhảy kernel = 2, giữ nguyên kích thước đầu ra
     model.add(BatchNormalization())  # Chuẩn hóa dữ liệu
     model.add(ReLU())  # Hàm kích hoạt ReLU
-    model.add(Dropout(0.3))  # Loại bỏ 30% dữ liệu để tránh overfitting
+    model.add(Dropout(0.25))  # Loại bỏ 25% dữ liệu để tránh overfitting
 
     # Đầu ra của mô hình
     model.add(

@@ -3,13 +3,25 @@ import time
 
 import matplotlib.pyplot as plt
 import tensorflow as tf
+from tensorflow import keras
 from tensorflow.keras.optimizers import Adam
 
 from discriminator_model import build_discriminator
 from gan_model import DCGAN
 from generator_model import build_generator
 from load_data import read_images
-from setting import batch_size, d_learning_rate, epochs, g_learning_rate
+from setting import d_learning_rate, epochs, g_learning_rate
+
+os.makedirs("./images", exist_ok=True)
+os.makedirs("./models", exist_ok=True)
+
+
+class DCGANCallback(keras.callbacks.Callback):
+    def on_epoch_end(self, epoch):
+        if epoch % 10 == 0:
+            self.generator.save(f"./models/generator_{epoch}epoch.keras")
+            self.discriminator.save(f"./models/discriminator_{epoch}epoch.keras")
+
 
 latent_dim = 128
 
@@ -29,7 +41,7 @@ with tf.device("/GPU:0"):
 
     # Đọc dữ liệu và huấn luyện mô hình
     X_train = read_images("./data")
-    history = gan.fit(X_train, epochs=epochs, batch_size=batch_size)
+    history = gan.fit(X_train, epochs=epochs, Callback=[DCGANCallback()])
 end = time.time()
 execution_time = end - start
 
@@ -37,13 +49,7 @@ print(
     f"Tổng thời gian chạy của mô hình là {execution_time:.2f}s, trung bình mỗi epoch là {(execution_time / epochs):.2f}s"
 )
 
-# Lưu mô hình generator và discriminator
-os.makedirs("./models", exist_ok=True)
-generator.save("./models/generator.keras")
-discriminator.save("./models/discriminator.keras")
-
 # Lưu kết quả huấn luyện
-os.makedirs("./images", exist_ok=True)
 plt.plot(history.history["d_loss"])
 plt.plot(history.history["g_loss"])
 plt.plot(history.history["fake_acc"])
