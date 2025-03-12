@@ -19,8 +19,8 @@ os.makedirs("./models", exist_ok=True)
 class DCGANCallback(keras.callbacks.Callback):
     def on_epoch_end(self, epoch, logs=None):
         if epoch % 10 == 0:
-            self.generator.save(f"./models/generator_{epoch}epoch.keras")
-            self.discriminator.save(f"./models/discriminator_{epoch}epoch.keras")
+            self.model.generator.save(f"./models/generator_{epoch}epoch.keras")
+            self.model.discriminator.save(f"./models/discriminator_{epoch}epoch.keras")
 
 
 latent_dim = 128
