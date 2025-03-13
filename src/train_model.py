@@ -51,9 +51,7 @@ print(
 # Lưu kết quả huấn luyện
 plt.plot(history.history["d_loss"])
 plt.plot(history.history["g_loss"])
-plt.plot(history.history["fake_acc"])
-plt.plot(history.history["real_acc"])
 plt.title("Đánh giá mô hình")
 plt.xlabel("Epoch")
-plt.legend(["d_loss", "g_loss", "fake_acc", "real_acc"], loc="upper right")
+plt.legend(["d_loss", "g_loss"], loc="upper right")
 plt.savefig("./images/result_model.png")

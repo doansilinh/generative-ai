@@ -17,8 +17,6 @@ class DCGAN(Model):
         self.g_optimizer = g_optimizer
         self.d_loss_metric = keras.metrics.Mean(name="d_loss")
         self.g_loss_metric = keras.metrics.Mean(name="g_loss")
-        self.real_accuracy = keras.metrics.BinaryAccuracy(name="real_acc")
-        self.fake_accuracy = keras.metrics.BinaryAccuracy(name="fake_acc")
 
     def generator_loss(self, fake_output):
         return tf.keras.losses.BinaryCrossentropy()(
@@ -33,10 +31,6 @@ class DCGAN(Model):
             tf.zeros_like(fake_output), fake_output
         )
         total_loss = real_loss + fake_loss
-
-        # Update accuracy metrics
-        self.real_accuracy.update_state(tf.ones_like(real_output), real_output)
-        self.fake_accuracy.update_state(tf.zeros_like(fake_output), fake_output)
 
         return total_loss
 
@@ -88,6 +82,4 @@ class DCGAN(Model):
         return {
             "d_loss": self.d_loss_metric.result(),
             "g_loss": self.g_loss_metric.result(),
-            "real_acc": self.real_accuracy.result(),
-            "fake_acc": self.fake_accuracy.result(),
         }
