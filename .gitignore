@@ -1,5 +1,4 @@
 __pycache__
 *.jpg
 *.keras
-images/result_model.png
-images/test_model.png
+generator*.png
