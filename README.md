@@ -1,4 +1,4 @@
-# Nghiên Cứu Khoa Học Generative AI
+# Generative AI
 ## Yêu cầu
 - Python
 ## Cách sử dụng
